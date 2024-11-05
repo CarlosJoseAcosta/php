@@ -118,6 +118,7 @@ if ($_POST["fechNac"] == "") {
     $fechNac = validacion($fechNac);
     $_SESSION['datos']['fechNac'] = $fechNac;
 }
+//vainas locas
 if ($_POST["contra"] == "") {
     $_SESSION["errores"]["contra"] = "El elemento contraseña esta vacio";
     $auxiliarReg = false;
