@@ -32,7 +32,7 @@ function subidaDato($nombre, $apellidos, $correo, $fecha, $contra, $img, $con)
         $con -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         //Guardamos en una variable la instruccion sql para posteriormente ejecutarlo
         //Recuerda cambiarle los nombres en clase
-        $sql = 'INSERT INTO usuario (nombre, apellidos, correo, fecha, contra, rutaImg) VALUES ("'.$nombre.'","'.$apellidos.'","'.$correo.'","'.$fecha.'","'.$contra.'","'.$img.'")';
+        $sql = 'INSERT INTO usuarios (nombre, apellidos, correo, fechaNac, contra, rutaImg) VALUES ("'.$nombre.'","'.$apellidos.'","'.$correo.'","'.$fecha.'","'.$contra.'","'.$img.'")';
         $con -> exec($sql);
         echo "insertado";
         $con = null;
@@ -62,15 +62,17 @@ function subidaDato($nombre, $apellidos, $correo, $fecha, $contra, $img, $con)
 function lecturaDatos($correoLog, $contraLog, $con)
 {
     $con -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $sql = 'SELECT * FROM usuario WHERE correo = "'.$correoLog. '"';
+    $sql = 'SELECT * FROM usuarios WHERE correo = "'.$correoLog. '"';
     foreach($con -> query($sql) as $datos){
         if(($correoLog == $datos["correo"])){
             if(password_verify($contraLog, $datos["contra"])){
                 $_SESSION["dato"]["nombreRec"] = $datos["nombre"];
                 $_SESSION["dato"]["apellidosRec"] = $datos["apellidos"];
                 $_SESSION["dato"]["correoRec"] = $datos["correo"];
-                $_SESSION["dato"]["fechaRec"] = $datos["fecha"];
+                $_SESSION["dato"]["fechaRec"] = $datos["fechaNac"];
                 $_SESSION["dato"]["rutaImg"] = $datos["rutaImg"];
+                header("Location: login.php");
+                die();
             }else{
                 $_SESSION["errores"]["contraLog"] = "La contraseña introducida no es valida";
             }
@@ -227,6 +229,6 @@ if ($auxiliarReg) {
     $conn = coneccion();
     subidaDato($nombre, $apellidos, $correo, $fechNac, $contra, $anadir, $conn);
 } else {
-    // header("Location: registro.php");
-    // die();
+    header("Location: index.php");
+    die();
 }
