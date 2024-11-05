@@ -1,17 +1,21 @@
 <?php
 session_start();
 //Funcion preventiva para las inyecciones SQL
-$servidor = "localhost";
-$usuario = "root";
-$contra = "";
+
 
 //creamos la coneccion con el servidor mysql
-try{
-    $conn = new PDO("mysql:host=$servidor;dbname=ejercicio1", $usuario, $contra);
-}catch(PDOException $e){
-    $_SESSION["errores"]["db"] = $e->getMessage();
-     header("Location: registro.php");
-     die();
+function coneccion(){
+    $servidor = "localhost";
+    $usuario = "root";
+    $contra = "";
+    try{
+        return $conn = new PDO("mysql:host=$servidor;dbname=ejercicio1", $usuario, $contra);
+        echo "conectado";
+    }catch(PDOException $e){
+        $_SESSION["errores"]["db"] = $e->getMessage();
+         header("Location: index.php");
+         die();
+    }
 }
 function validacion($dato)
 {
@@ -21,9 +25,25 @@ function validacion($dato)
     return $dato;
 }
 //Funcion para guardar los datos del registro en un archivo JSON
-function subidaDato($nombre, $apellidos, $correo, $fecha, $contra, $img)
+function subidaDato($nombre, $apellidos, $correo, $fecha, $contra, $img, $con)
 {
-    $sql = 'INSERT INTO usuarios (nombre, apellidos, correo, fechNac, contra, rutaImg) VALUES ('.$nombre.','.$apellidos.','.$correo.','.$fecha.','.$contra.','.$img.')'
+    echo "empieza la fnc";
+    try{
+        $con -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        //Guardamos en una variable la instruccion sql para posteriormente ejecutarlo
+        //Recuerda cambiarle los nombres en clase
+        $sql = 'INSERT INTO usuario (nombre, apellidos, correo, fecha, contra, rutaImg) VALUES ("'.$nombre.'","'.$apellidos.'","'.$correo.'","'.$fecha.'","'.$contra.'","'.$img.'")';
+        $con -> exec($sql);
+        echo "insertado";
+        $con = null;
+        header("Location: login.php");
+        die();
+    }catch(PDOException $e){
+        echo "No insertado";
+        $_SESSION["errores"]["db"] = $sql. "<br>" .$e->getMessage();
+        header("Location: index.php");
+     die();
+    }
     // $datos = [$nombre, $apellidos, $correo, $fecha, $contra, $img];
     // $texto = json_encode($datos);
     // if (!file_exists("documentos/" . $correo . ".json")) {
@@ -39,32 +59,49 @@ function subidaDato($nombre, $apellidos, $correo, $fecha, $contra, $img)
     
 }
 
-function lecturaJson($correoLog, $contraLog)
+function lecturaDatos($correoLog, $contraLog, $con)
 {
-    $datos = file_get_contents("documentos/" . $correoLog . ".json");
-    $datosMatrices = json_decode($datos);
-    echo "<p>" . $correoLog . "</p>";
-    echo "<p>" . $contraLog . "</p>";
-    $nombreRec = $datosMatrices[0];
-    $apellidosRec = $datosMatrices[1];
-    $correoRec = $datosMatrices[2];
-    $fechaRec = $datosMatrices[3];
-    $contraRec = $datosMatrices[4];
-    $imgRec = $datosMatrices[5];
-    if (($correoLog == $correoRec) && (password_verify($contraLog, $contraRec))) {
-        echo "<p>HOLA AQUI ESTOY</p>";
-        $_SESSION["dato"]["nombreRec"] = $nombreRec;
-        echo "<p>" . $_SESSION["dato"]["nombreRec"] . "</p>";
-        var_dump($_SESSION["dato"]);
-        $_SESSION["dato"]["apellidosRec"] = $apellidosRec;
-        $_SESSION["dato"]["correoRec"] = $correoRec;
-        $_SESSION["dato"]["fechaRec"] = $fechaRec;
-        $_SESSION["dato"]["rutaImg"] = $imgRec;
-    } else {
-        $_SESSION["errores"]["contraLog"] = "La contraseña introducida es incorrecta";
+    $con -> setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $sql = 'SELECT * FROM usuario WHERE correo = "'.$correoLog. '"';
+    foreach($con -> query($sql) as $datos){
+        if(($correoLog == $datos["correo"])){
+            if(password_verify($contraLog, $datos["contra"])){
+                $_SESSION["dato"]["nombreRec"] = $datos["nombre"];
+                $_SESSION["dato"]["apellidosRec"] = $datos["apellidos"];
+                $_SESSION["dato"]["correoRec"] = $datos["correo"];
+                $_SESSION["dato"]["fechaRec"] = $datos["fecha"];
+                $_SESSION["dato"]["rutaImg"] = $datos["rutaImg"];
+            }else{
+                $_SESSION["errores"]["contraLog"] = "La contraseña introducida no es valida";
+            }
+         }else{
+            $SESSION["errores"]["correoLog"] = "El correo introducido no existe";
+         }
     }
-    header("Location: login.php");
-    die();
+    // $datos = file_get_contents("documentos/" . $correoLog . ".json");
+    // $datosMatrices = json_decode($datos);
+    // echo "<p>" . $correoLog . "</p>";
+    // echo "<p>" . $contraLog . "</p>";
+    // $nombreRec = $datosMatrices[0];
+    // $apellidosRec = $datosMatrices[1];
+    // $correoRec = $datosMatrices[2];
+    // $fechaRec = $datosMatrices[3];
+    // $contraRec = $datosMatrices[4];
+    // $imgRec = $datosMatrices[5];
+    // if (($correoLog == $correoRec) && (password_verify($contraLog, $contraRec))) {
+    //     echo "<p>HOLA AQUI ESTOY</p>";
+    //     $_SESSION["dato"]["nombreRec"] = $nombreRec;
+    //     echo "<p>" . $_SESSION["dato"]["nombreRec"] . "</p>";
+    //     var_dump($_SESSION["dato"]);
+    //     $_SESSION["dato"]["apellidosRec"] = $apellidosRec;
+    //     $_SESSION["dato"]["correoRec"] = $correoRec;
+    //     $_SESSION["dato"]["fechaRec"] = $fechaRec;
+    //     $_SESSION["dato"]["rutaImg"] = $imgRec;
+    // } else {
+    //     $_SESSION["errores"]["contraLog"] = "La contraseña introducida es incorrecta";
+    // }
+    /*header("Location: login.php");
+    die();*/
 }
 
 $auxiliarReg = true;
@@ -118,7 +155,6 @@ if ($_POST["fechNac"] == "") {
     $fechNac = validacion($fechNac);
     $_SESSION['datos']['fechNac'] = $fechNac;
 }
-//mondongo
 if ($_POST["contra"] == "") {
     $_SESSION["errores"]["contra"] = "El elemento contraseña esta vacio";
     $auxiliarReg = false;
@@ -182,13 +218,15 @@ if ($_POST["contraLog"] == "") {
     $auxLog = true;
 }
 if ($auxLog) {
-    lecturaJson($correoL, $contraL);
+    $conn = coneccion();
+    lecturaDatos($correoL, $contraL, $conn);
 }
 
 //Subida de datos
 if ($auxiliarReg) {
-    subidaDato($nombre, $apellidos, $correo, $fechNac, $contra, $anadir);
+    $conn = coneccion();
+    subidaDato($nombre, $apellidos, $correo, $fechNac, $contra, $anadir, $conn);
 } else {
-    header("Location: registro.php");
-    die();
+    // header("Location: registro.php");
+    // die();
 }
